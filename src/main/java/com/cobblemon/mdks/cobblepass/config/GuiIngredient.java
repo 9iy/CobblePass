@@ -33,6 +33,7 @@ public class GuiIngredient {
 
     private IngredientType type;
     private String material;
+    private String nonPremiumMaterial;     // Material for non-premium state
     private String name;
     private List<String> lore;
     private int customModelData;
@@ -46,6 +47,7 @@ public class GuiIngredient {
     public GuiIngredient() {
         this.type = IngredientType.STATIC_ITEM;
         this.material = "minecraft:gray_stained_glass_pane";
+        this.nonPremiumMaterial = null;  // Default to null, will use material if not set
         this.name = "";
         this.lore = new ArrayList<>();
         this.customModelData = 0;
@@ -70,6 +72,10 @@ public class GuiIngredient {
 
         if (json.has("material")) {
             ingredient.material = json.get("material").getAsString();
+        }
+        
+        if (json.has("nonPremiumMaterial")) {
+            ingredient.nonPremiumMaterial = json.get("nonPremiumMaterial").getAsString();
         }
 
         if (json.has("name")) {
@@ -120,6 +126,9 @@ public class GuiIngredient {
         JsonObject json = new JsonObject();
         json.addProperty("type", type.name());
         json.addProperty("material", material);
+        if (nonPremiumMaterial != null && !nonPremiumMaterial.isEmpty()) {
+            json.addProperty("nonPremiumMaterial", nonPremiumMaterial);
+        }
         json.addProperty("name", name);
         
         JsonArray loreArray = new JsonArray();
@@ -197,6 +206,66 @@ public class GuiIngredient {
 
         return stack;
     }
+    
+    /**
+     * Creates an item stack based on the premium status
+     * Uses nonPremiumMaterial if specified and player doesn't have premium, otherwise uses regular material
+     */
+    public ItemStack createItemStack(boolean hasPremium) {
+        String materialToUse = material; // Default to regular material
+        
+        // If player doesn't have premium and a non-premium material is specified, use it
+        if (!hasPremium && nonPremiumMaterial != null && !nonPremiumMaterial.isEmpty()) {
+            materialToUse = nonPremiumMaterial;
+        }
+        
+        // Parse material string to get item
+        ItemStack stack;
+        try {
+            // Handle empty or null material
+            if (materialToUse == null || materialToUse.trim().isEmpty()) {
+                stack = getDefaultItemForType();
+            } else {
+                ResourceLocation itemId = ResourceLocation.parse(materialToUse);
+                var item = BuiltInRegistries.ITEM.get(itemId);
+                if (item == Items.AIR) {
+                    stack = getDefaultItemForType();
+                } else {
+                    stack = new ItemStack(item);
+                }
+            }
+        } catch (Exception e) {
+            // Log the error for debugging
+            com.cobblemon.mdks.cobblepass.CobblePass.LOGGER.warn("Invalid material '{}' for GUI ingredient type {}, using default", materialToUse, type);
+            stack = getDefaultItemForType();
+        }
+        
+        // Set custom name if provided
+        if (name != null && !name.isEmpty()) {
+            stack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+        }
+        
+        // Set lore if provided
+        if (lore != null && !lore.isEmpty()) {
+            List<Component> loreComponents = new ArrayList<>();
+            for (String loreLine : lore) {
+                loreComponents.add(Component.literal(loreLine));
+            }
+            stack.set(DataComponents.LORE, new ItemLore(loreComponents));
+        }
+        
+        // Set custom model data if provided
+        if (customModelData > 0) {
+            stack.set(DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(customModelData));
+        }
+        
+        // Hide tooltip if specified
+        if (hideTooltip) {
+            stack.set(DataComponents.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE);
+        }
+        
+        return stack;
+    }
 
     /**
      * Gets a sensible default item based on the ingredient type
@@ -233,6 +302,14 @@ public class GuiIngredient {
 
     public void setMaterial(String material) {
         this.material = material;
+    }
+    
+    public String getNonPremiumMaterial() {
+        return nonPremiumMaterial;
+    }
+    
+    public void setNonPremiumMaterial(String nonPremiumMaterial) {
+        this.nonPremiumMaterial = nonPremiumMaterial;
     }
 
     public String getName() {

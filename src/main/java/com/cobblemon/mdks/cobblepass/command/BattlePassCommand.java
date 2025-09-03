@@ -223,7 +223,7 @@ public class BattlePassCommand extends BaseCommand {
     }
 
 
-    private static Button createXpInfoButton(ServerPlayer player) {
+    private static Button createXpInfoButton(ServerPlayer player, GuiIngredient ingredient) {
         List<Component> xpInfoLore = new ArrayList<>();
         xpInfoLore.add(LangManager.get("lang.gui.xp_info.description"));
         xpInfoLore.add(Component.literal(""));
@@ -250,14 +250,14 @@ public class BattlePassCommand extends BaseCommand {
         }
 
         return GooeyButton.builder()
-                .display(new ItemStack(Items.EXPERIENCE_BOTTLE))
+                .display(ingredient.createItemStack()) // Use the item from the config
                 .with(DataComponents.CUSTOM_NAME, LangManager.get("lang.gui.xp_info.name"))
                 .with(DataComponents.LORE, new ItemLore(xpInfoLore))
                 .with(DataComponents.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE)
                 .build();
     }
 
-    private static Button createProgressButton(PlayerBattlePass pass) {
+    private static Button createProgressButton(PlayerBattlePass pass, GuiIngredient ingredient) {
         int currentXP = pass.getXP();
         int xpForNext;
         if (CobblePass.config.getXpProgression().getMode().equalsIgnoreCase("MANUAL")) {
@@ -279,16 +279,16 @@ public class BattlePassCommand extends BaseCommand {
         }
 
         return GooeyButton.builder()
-                .display(new ItemStack(Items.NETHER_STAR))
+                .display(ingredient.createItemStack()) // Use the item from the config
                 .with(DataComponents.CUSTOM_NAME, LangManager.get("lang.gui.progress.name"))
                 .with(DataComponents.LORE, new ItemLore(infoLore))
                 .with(DataComponents.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE)
                 .build();
     }
 
-    private static Button createPremiumStatusButton(PlayerBattlePass pass, ServerPlayer player) {
+    private static Button createPremiumStatusButton(PlayerBattlePass pass, ServerPlayer player, GuiIngredient ingredient) {
         boolean hasPremium = pass.hasPremium(player); // <<< MODIFIED LINE
-        ItemStack premiumDisplay = hasPremium ? new ItemStack(PokeBalls.INSTANCE.getMASTER_BALL().item()) : new ItemStack(PokeBalls.INSTANCE.getPREMIER_BALL().item());
+        ItemStack premiumDisplay = ingredient.createItemStack(hasPremium); // Use the item from the config based on premium status
         List<Component> premiumLore = new ArrayList<>();
         
         if (hasPremium) { // <<< MODIFIED LINE
@@ -395,13 +395,13 @@ public class BattlePassCommand extends BaseCommand {
                             button = createCommandButton(ingredient, player, pageNum);
                             break;
                         case XP_INFO_PLACEHOLDER:
-                            button = createXpInfoButton(player);
+                            button = createXpInfoButton(player, ingredient);
                             break;
                         case PROGRESS_PLACEHOLDER:
-                            button = createProgressButton(pass);
+                            button = createProgressButton(pass, ingredient);
                             break;
                         case PREMIUM_STATUS_PLACEHOLDER:
-                            button = createPremiumStatusButton(pass, player);
+                            button = createPremiumStatusButton(pass, player, ingredient);
                             break;
                         case FREE_REWARDS_LABEL:
                             button = GooeyButton.builder()
