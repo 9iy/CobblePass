@@ -1,5 +1,7 @@
 package com.cobblemon.mdks.cobblepass.season;
 
+import com.cobblemon.mdks.cobblepass.CobblePass;
+
 public class SeasonResetOptions {
     private boolean resetLevels;
     private boolean resetXP;
@@ -15,17 +17,25 @@ public class SeasonResetOptions {
         this.resetLevels = true;
         this.resetXP = true;
         this.resetClaimedRewards = true;
-        this.premiumPreservationMode = PremiumPreservationMode.PRESERVE_ALL;
+        
+        // Set the default premium preservation behavior based on the main config file
+        if (CobblePass.config.getPremiumConfig().isPreserveOnSeasonChange()) {
+            this.premiumPreservationMode = PremiumPreservationMode.PRESERVE_ALL;
+            this.preservePremiumStatus = true;
+        } else {
+            this.premiumPreservationMode = PremiumPreservationMode.NONE;
+            this.preservePremiumStatus = false;
+        }
+
         this.validateBeforeReset = true;
-        this.preservePremiumStatus = true;
         this.syncFromPermissions = false;
         this.broadcastMessages = true;
         this.createBackup = true;
     }
 
     public SeasonResetOptions(boolean preservePremiumStatus, boolean syncFromPermissions,
-                             boolean broadcastMessages, boolean createBackup,
-                             boolean validateBeforeReset, PremiumPreservationMode premiumPreservationMode) {
+                              boolean broadcastMessages, boolean createBackup,
+                              boolean validateBeforeReset, PremiumPreservationMode premiumPreservationMode) {
         this.preservePremiumStatus = preservePremiumStatus;
         this.syncFromPermissions = syncFromPermissions;
         this.broadcastMessages = broadcastMessages;

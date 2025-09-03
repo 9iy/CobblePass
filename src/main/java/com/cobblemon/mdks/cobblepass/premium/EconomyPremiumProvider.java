@@ -32,31 +32,10 @@ public class EconomyPremiumProvider implements PremiumProvider {
             return false;
         }
         
-        // Check if economy system is available
-        if (!EconomyUtils.isEconomyAvailable()) {
-            CobblePass.LOGGER.warn("Cannot grant premium - economy system not available");
-            return false;
-        }
-        
-        long cost = CobblePass.config.getPremiumConfig().getPremiumCost();
-        
-        // Check if economy is enabled for this mode
-        if (!CobblePass.config.getPremiumConfig().isEconomyEnabled()) {
-            return false;
-        }
-        
-        // Check if player has sufficient balance
-        if (!EconomyUtils.hasBalance(player.getUUID(), cost)) {
-            return false;
-        }
-        
-        // Deduct funds
-        if (!EconomyUtils.withdraw(player.getUUID(), cost)) {
-            return false;
-        }
-        
-        // Grant premium access
-        PlayerBattlePass playerPass = CobblePass.battlePass.getPlayerPass(player);
+        // This method is now a pure grant. The economy logic is handled by the /premium buy command.
+        // This allows admin grants (/premiumanage add) to be free.
+        // USE THE NON-MIGRATING GETTER TO PREVENT LOOPS
+        PlayerBattlePass playerPass = CobblePass.battlePass.getPlayerPassWithoutMigration(player);
         playerPass.setPremium(true);
         
         // Save player data immediately
@@ -115,11 +94,11 @@ public class EconomyPremiumProvider implements PremiumProvider {
     @Override
     public List<String> getBulkOperationCommands() {
         return Arrays.asList(
-            "§6Bulk Economy Operations:",
-            "§3/battlepass admin premium grant <player> §7- Grant premium to player (no cost)",
-            "§3/battlepass admin premium revoke <player> §7- Revoke premium from player",
-            "§3/battlepass admin premium list §7- List all premium players",
-            "§3/battlepass admin premium refund <player> §7- Refund premium purchase"
+                "§6Bulk Economy Operations:",
+                "§3/battlepass admin premium grant <player> §7- Grant premium to player (no cost)",
+                "§3/battlepass admin premium revoke <player> §7- Revoke premium from player",
+                "§3/battlepass admin premium list §7- List all premium players",
+                "§3/battlepass admin premium refund <player> §7- Refund premium purchase"
         );
     }
     

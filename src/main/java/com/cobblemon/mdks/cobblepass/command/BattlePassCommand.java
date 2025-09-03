@@ -101,7 +101,7 @@ public class BattlePassCommand extends BaseCommand {
         return String.format("%d days, %d hours, %d minutes", days, hours, minutes);
     }
 
-    private static List<Component> getRewardLore(PlayerBattlePass pass, BattlePassTier tier, int level, boolean isPremium) {
+    private static List<Component> getRewardLore(PlayerBattlePass pass, ServerPlayer player, BattlePassTier tier, int level, boolean isPremium) {
         List<Component> lore = new ArrayList<>();
         Reward reward = isPremium ? tier.getPremiumReward() : tier.getFreeReward();
 
@@ -163,7 +163,7 @@ public class BattlePassCommand extends BaseCommand {
 
         // Part 2: Add Status Information
         if (isPremium) {
-            if (!pass.isPremium()) {
+            if (!pass.hasPremium(player)) { // <<< MODIFIED LINE
                 lore.add(LangManager.get("lang.gui.status.in_lore.requires_premium"));
                 lore.add(LangManager.get("lang.gui.status.in_lore.purchase_prompt"));
             } else if (level > pass.getLevel()) {
@@ -188,15 +188,15 @@ public class BattlePassCommand extends BaseCommand {
     private static Button createRewardButton(ServerPlayer player, PlayerBattlePass pass, BattlePassTier tier, int level, boolean isPremium, int pageNum) {
         // Use the consolidated display logic from BattlePassTier
         ItemStack displayItem = isPremium ?
-            tier.getPremiumRewardItem(pass, player.level().registryAccess()) :
-            tier.getFreeRewardItem(pass, player.level().registryAccess());
+                tier.getPremiumRewardItem(pass, player.level().registryAccess()) :
+                tier.getFreeRewardItem(pass, player.level().registryAccess());
 
         if (displayItem == null || displayItem.isEmpty()) {
             displayItem = new ItemStack(Items.BARRIER);
         }
 
         // The lore is now generated with status information included
-        List<Component> lore = getRewardLore(pass, tier, level, isPremium);
+        List<Component> lore = getRewardLore(pass, player, tier, level, isPremium); // <<< MODIFIED LINE
 
         return GooeyButton.builder()
                 .display(displayItem)
@@ -209,7 +209,7 @@ public class BattlePassCommand extends BaseCommand {
                         return;
                     }
 
-                    if (isPremium && !pass.isPremium()) {
+                    if (isPremium && !pass.hasPremium(player)) { // <<< MODIFIED LINE
                         player.sendSystemMessage(LangManager.get("lang.command.not_premium"));
                         return;
                     }
@@ -287,10 +287,11 @@ public class BattlePassCommand extends BaseCommand {
     }
 
     private static Button createPremiumStatusButton(PlayerBattlePass pass, ServerPlayer player) {
-        ItemStack premiumDisplay = pass.isPremium() ? new ItemStack(PokeBalls.INSTANCE.getMASTER_BALL().item()) : new ItemStack(PokeBalls.INSTANCE.getPREMIER_BALL().item());
+        boolean hasPremium = pass.hasPremium(player); // <<< MODIFIED LINE
+        ItemStack premiumDisplay = hasPremium ? new ItemStack(PokeBalls.INSTANCE.getMASTER_BALL().item()) : new ItemStack(PokeBalls.INSTANCE.getPREMIER_BALL().item());
         List<Component> premiumLore = new ArrayList<>();
         
-        if (pass.isPremium()) {
+        if (hasPremium) { // <<< MODIFIED LINE
             premiumLore.add(LangManager.get("lang.gui.premium.active"));
             if (CobblePass.config.isSeasonActive()) {
                 premiumLore.add(LangManager.get("lang.gui.premium.season", CobblePass.config.getCurrentSeason()));
@@ -308,7 +309,7 @@ public class BattlePassCommand extends BaseCommand {
                 .with(DataComponents.LORE, new ItemLore(premiumLore))
                 .with(DataComponents.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE)
                 .onClick(action -> {
-                    if (!pass.isPremium()) {
+                    if (!pass.hasPremium(player)) { // <<< MODIFIED LINE
                         player.closeContainer();
                         player.sendSystemMessage(LangManager.get("lang.gui.premium.command_info"));
                     }

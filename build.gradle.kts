@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.example"
-version = "2.0.9-custom"
+version = "2.1.0"
 
 java {
     toolchain {
@@ -25,6 +25,8 @@ repositories {
     maven("https://maven.impactdev.net/repository/development/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://repo.sonatype.org/repository/maven-public/")
+
+    maven("https://maven.lucko.me/")
 }
 
 dependencies {
@@ -37,6 +39,8 @@ dependencies {
     modImplementation(fabricApi.module("fabric-command-api-v2", "0.104.0+1.21.1"))
     modImplementation(fabricApi.module("fabric-lifecycle-events-v1", "0.104.0+1.21.1"))
     modImplementation(fabricApi.module("fabric-networking-api-v1", "0.104.0+1.21.1"))
+
+    modImplementation("me.lucko:fabric-permissions-api:0.3.3")
 
     // Cobblemon
     modImplementation("com.cobblemon:fabric:1.6.0+1.21.1")

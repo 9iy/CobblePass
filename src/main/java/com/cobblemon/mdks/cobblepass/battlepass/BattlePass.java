@@ -127,29 +127,22 @@ public class BattlePass {
 
     public PlayerBattlePass getPlayerPass(ServerPlayer player) {
         UUID uuid = player.getUUID();
-        // This check is now very important. If the map doesn't contain the UUID,
-        // it could be because their file was corrupt.
         if (!playerPasses.containsKey(uuid)) {
             loadPlayerPass(uuid.toString());
         }
         
-        // This will now only create a new pass if no file existed in the first place.
-        // If loading failed, it will return null, preventing interaction and data wipe.
         PlayerBattlePass pass = playerPasses.computeIfAbsent(uuid,
                 id -> {
-                    // This block now only runs for a genuinely new player.
                     PlayerBattlePass newPass = new PlayerBattlePass(id);
                     savePlayerPass(id.toString());
                     return newPass;
                 });
         
-        // Perform premium status migration if needed
-        if (pass != null) {
-            migratePremiumStatusIfNeeded(player, pass);
-            
-            // Handle season transition premium migration
-            handleSeasonTransitionMigration(player, pass);
-        }
+        // This was the cause of the crash. Migration should not be handled here automatically.
+        // if (pass != null) {
+        //     migratePremiumStatusIfNeeded(player, pass);
+        //     handleSeasonTransitionMigration(player, pass);
+        // }
         
         return pass;
     }
@@ -174,70 +167,6 @@ public class BattlePass {
         return pass;
     }
     
-    /**
-     * Migrates premium status data for existing players when switching premium modes.
-     * This ensures existing premium status is properly handled with the new provider system.
-     * @param player The server player
-     * @param pass The player's battle pass data
-     */
-    private void migratePremiumStatusIfNeeded(ServerPlayer player, PlayerBattlePass pass) {
-        // Check if migration is needed based on data version or other criteria
-        if (shouldMigratePremiumStatus(pass)) {
-            pass.migratePremiumStatus(player);
-            // Save the migrated data
-            savePlayerPass(player.getUUID().toString());
-        }
-    }
-    
-    /**
-     * Determines if premium status migration is needed for a player.
-     * @param pass The player's battle pass data
-     * @return true if migration is needed
-     */
-    private boolean shouldMigratePremiumStatus(PlayerBattlePass pass) {
-        // Migration is needed if the player has stored premium status and we haven't migrated yet
-        // This could be enhanced with a migration flag in the future
-        return pass.getStoredPremiumStatus() && 
-               CobblePass.config.getPremiumConfig().getMode() != com.cobblemon.mdks.cobblepass.premium.PremiumMode.DISABLED;
-    }
-    
-    /**
-     * Handles premium status migration during season transitions.
-     * This integrates with the PremiumManager to restore premium status
-     * for players who had it in the previous season.
-     * 
-     * @param player The server player
-     * @param pass The player's battle pass data
-     */
-    private void handleSeasonTransitionMigration(ServerPlayer player, PlayerBattlePass pass) {
-        try {
-            // Check if this player needs premium migration from season transition
-            boolean migrated = com.cobblemon.mdks.cobblepass.premium.PremiumManager.getInstance()
-                    .handlePremiumMigration(player);
-            
-            if (migrated) {
-                // Update the player's battle pass to reflect the restored premium status
-                pass.setPremium(true);
-                
-                // Send notification to player
-                player.sendSystemMessage(LangManager.get("lang.season.premium.restored.detailed",
-                        java.util.Map.of(
-                                "playerName", player.getName().getString(),
-                                "seasonNumber", String.valueOf(CobblePass.config.getCurrentSeason())
-                        )));
-                
-                // Save the updated pass
-                savePlayerPass(player.getUUID().toString());
-                
-                CobblePass.LOGGER.info("Successfully migrated premium status for player: " + player.getName().getString());
-            }
-            
-        } catch (Exception e) {
-            CobblePass.LOGGER.error("Error handling season transition migration for player: " + 
-                    player.getName().getString(), e);
-        }
-    }
-
     public void addXP(ServerPlayer player, int amount) {
         PlayerBattlePass pass = getPlayerPass(player);
         pass.addXP(amount);
@@ -317,9 +246,9 @@ public class BattlePass {
             try {
                 // Walk the directory and delete all .json files within it
                 java.nio.file.Files.walk(playersDir.toPath())
-                    .filter(p -> p.toString().endsWith(".json"))
-                    .map(java.nio.file.Path::toFile)
-                    .forEach(File::delete);
+                        .filter(p -> p.toString().endsWith(".json"))
+                        .map(java.nio.file.Path::toFile)
+                        .forEach(File::delete);
                 CobblePass.LOGGER.info("All player battle pass data has been reset.");
             } catch (java.io.IOException e) {
                 CobblePass.LOGGER.error("Failed to reset player battle pass data files.", e);
