@@ -1,27 +1,51 @@
 package com.cobblemon.mdks.cobblepass.listeners;
 
-import com.cobblemon.mod.common.api.events.CobblemonEvents;
-import com.cobblemon.mod.common.api.events.pokemon.evolution.EvolutionCompleteEvent;
-import com.cobblemon.mod.common.api.Priority;
-import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mdks.cobblepass.CobblePass;
-import net.minecraft.server.level.ServerPlayer;
+import com.cobblemon.mod.common.api.Priority;
 import kotlin.Unit;
-
-import java.util.UUID;
+import kotlin.jvm.functions.Function1;
+import net.minecraft.server.level.ServerPlayer;
 
 public class EvolvePokemonListener {
+
     public static void register() {
-        CobblemonEvents.EVOLUTION_COMPLETE.subscribe(Priority.NORMAL, evt -> {
-            Pokemon pokemon = evt.getPokemon();
-            UUID ownerUUID = pokemon.getOwnerUUID();
-            if (ownerUUID != null) {
-                ServerPlayer player = CobblePass.server.getPlayerList().getPlayer(ownerUUID);
-                if (player != null) {
-                    CobblePass.battlePass.addXP(player, CobblePass.config.getEvolveXP());
-                }
+        Function1<Object, Unit> handler = (evt) -> {
+            ServerPlayer player = tryGetPlayer(evt);
+            if (player != null) {
+                CobblePass.battlePass.addXP(player, CobblePass.config.getEvolveXP());
             }
             return Unit.INSTANCE;
-        });
+        };
+
+        if (trySubscribe("com.cobblemon.mod.common.api.events.pokemon.evolution.EvolutionEvents", "COMPLETE", handler)) {
+            CobblePass.LOGGER.info("[CobblePass] Subscribed to EvolutionEvents.COMPLETE");
+            return;
+        }
+        if (trySubscribe("com.cobblemon.mod.common.api.events.pokemon.evolution.EvolutionCompleteEvent", "TYPE", handler)) {
+            CobblePass.LOGGER.info("[CobblePass] Subscribed to EvolutionCompleteEvent.TYPE");
+            return;
+        }
+        if (trySubscribe("com.cobblemon.mod.common.api.events.CobblemonEvents", "EVOLUTION_COMPLETE", handler)) {
+            CobblePass.LOGGER.info("[CobblePass] Subscribed to CobblemonEvents.EVOLUTION_COMPLETE");
+            return;
+        }
+        CobblePass.LOGGER.warn("[CobblePass] No evolution-complete event channel found; evolution XP disabled.");
+    }
+
+    private static boolean trySubscribe(String className, String fieldName, Function1<Object, Unit> handler) {
+        try {
+            Class<?> clazz = Class.forName(className);
+            Object channel = clazz.getField(fieldName).get(null);
+            channel.getClass().getMethod("subscribe", Priority.class, Function1.class)
+                    .invoke(channel, Priority.NORMAL, handler);
+            return true;
+        } catch (Throwable ignored) { return false; }
+    }
+
+    private static ServerPlayer tryGetPlayer(Object evt) {
+        try {
+            Object p = evt.getClass().getMethod("getPlayer").invoke(evt);
+            return (p instanceof ServerPlayer) ? (ServerPlayer) p : null;
+        } catch (Throwable ignored) { return null; }
     }
 }
